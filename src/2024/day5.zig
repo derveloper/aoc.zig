@@ -123,21 +123,19 @@ fn isRuleApplicable(rule: Rule, update: []i64) bool {
 const SortUpdateCtx = struct { rules: []Rule, update: []i64 };
 
 fn updateLessThan(context: SortUpdateCtx, lhs: i64, rhs: i64) bool {
-    var lessThan: i64 = 0;
     for (context.rules) |rule| {
         if (rule.lhs == lhs and rule.rhs == rhs) {
-            std.log.err("matched rule {d} {d} {any}\n", .{ lhs, rhs, rule });
-            lessThan += pageDist(rule, context.update);
+            std.log.err("matched rule sorted {d} {d} {any}\n", .{ lhs, rhs, rule });
+            return true;
         }
 
-        if (rule.rhs == lhs and rule.lhs == rhs) {
-            std.log.err("matched rule {d} {d} {any}\n", .{ lhs, rhs, rule });
-            lessThan -= pageDist(rule, context.update);
+        if (rule.lhs == rhs and rule.rhs == lhs) {
+            std.log.err("matched rule unsorted {d} {d} {any}\n", .{ lhs, rhs, rule });
+            return false;
         }
     }
 
-    std.log.err("sort {d} {d} {any} updates {any}\n", .{ lhs, rhs, lessThan, context.update });
-    return lessThan < 0;
+    return false;
 }
 
 pub fn part1(this: *const @This()) !?i64 {

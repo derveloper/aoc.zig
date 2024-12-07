@@ -1,0 +1,3 @@
+[submodule "zig-ansi"]
+	path = zig-ansi
+	url = git@github.com:nektro/zig-ansi.git

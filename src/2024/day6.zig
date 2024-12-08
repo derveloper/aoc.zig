@@ -20,7 +20,6 @@ fn parseInput(this: *const @This()) !std.ArrayList(std.ArrayList(Tile)) {
         var row = try std.ArrayList(Tile).initCapacity(this.allocator, line.len);
         const trimmed = std.mem.trim(u8, line, " ");
         for (trimmed) |t| {
-            std.log.err("t: {d}", .{t});
             try row.append(@enumFromInt(t));
         }
         try map.append(row);
@@ -80,17 +79,12 @@ fn step(pos: Pos, map: std.ArrayList(std.ArrayList(Tile))) ?Pos {
 }
 
 pub fn part1(this: *const @This()) !?i64 {
-    var result: i64 = 0;
     const map = try parseInput(this);
 
     var pos = Pos{ .x = 0, .y = 0, .dir = Heading.up };
-    var width: usize = 0;
-    var height: usize = 0;
 
     for (map.items, 0..) |row, y| {
-        height = y;
         for (row.items, 0..) |tile, x| {
-            width = x;
             switch (tile) {
                 Tile.gd, Tile.gl, Tile.gr, Tile.gu => {
                     pos.x = x;
@@ -102,23 +96,34 @@ pub fn part1(this: *const @This()) !?i64 {
         }
     }
 
-    width += 1;
-    height += 1;
-
-    std.log.err("start: ({d},{d})", .{ pos.x, pos.y });
+    // std.log.err("start: ({d},{d})", .{ pos.x, pos.y });
 
     const Vec2 = struct { x: usize, y: usize };
     var visited = std.AutoHashMap(Vec2, bool).init(this.allocator);
     defer visited.deinit();
 
+    // try visited.put(Vec2{ .x = pos.x, .y = pos.y }, true);
+
     while (step(pos, map)) |next| {
-        const wasVisited = visited.get(Vec2{ .x = next.x, .y = next.y });
-        try visited.put(Vec2{ .x = next.x, .y = next.y }, true);
-        std.log.err("next: ({d},{d}) {any}", .{ next.x, next.y, next.dir });
+        // std.log.err("next: ({d},{d}) {any}", .{ next.x, next.y, next.dir });
+        if (visited.get(Vec2{ .x = pos.x, .y = pos.y }) == null)
+            try visited.put(Vec2{ .x = pos.x, .y = pos.y }, true);
         pos = next;
-        if (wasVisited == null) {
-            result += 1;
+    }
+
+    try visited.put(Vec2{ .x = pos.x, .y = pos.y }, true);
+
+    var result: i64 = 0;
+    for (map.items, 0..) |row, y| {
+        for (row.items, 0..) |tile, x| {
+            if (visited.get(Vec2{ .x = x, .y = y })) |_| {
+                std.debug.print("X", .{});
+                result += 1;
+            } else {
+                std.debug.print("{c}", .{@intFromEnum(tile)});
+            }
         }
+        std.debug.print("\n", .{});
     }
 
     for (map.items) |row| {

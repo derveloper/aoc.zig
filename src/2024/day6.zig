@@ -135,9 +135,88 @@ pub fn part1(this: *const @This()) !?i64 {
     return result;
 }
 
+fn isVisitedPos(pos: Pos, visited: std.ArrayList(Pos)) bool {
+    for (visited.items) |v| {
+        // std.log.err("searching {any}", .{pos});
+        if (pos.x == v.x and pos.y == v.y and pos.dir == v.dir) {
+            // std.log.err("found {any}", .{pos});
+            return true;
+        }
+    }
+
+    return false;
+}
+
 pub fn part2(this: *const @This()) !?i64 {
-    _ = this;
-    return null;
+    const map = try parseInput(this);
+
+    var loops: i64 = 0;
+
+    for (0..map.items.len) |y| {
+        for (0..map.items[y].items.len) |x| {
+            var pos = Pos{ .x = 0, .y = 0, .dir = Heading.up };
+
+            for (map.items, 0..) |row, yy| {
+                for (row.items, 0..) |tile, xx| {
+                    switch (tile) {
+                        Tile.gd, Tile.gl, Tile.gr, Tile.gu => {
+                            pos.x = xx;
+                            pos.y = yy;
+                            pos.dir = @enumFromInt(@intFromEnum(tile));
+                        },
+                        else => {},
+                    }
+                }
+            }
+            // std.log.err("starting pos: {any} {d},{d}", .{ pos, x, y });
+
+            var visitedPos = std.ArrayList(Pos).init(this.allocator);
+            defer visitedPos.deinit();
+            const origTile = map.items[y].items[x];
+
+            if (map.items[y].items[x] != Tile.obstruction and (pos.x != x or pos.y != y)) {
+                map.items[y].items[x] = Tile.obstruction;
+            } else {
+                continue;
+            }
+            var steps: usize = 0;
+
+            try visitedPos.append(pos);
+            while (step(pos, map)) |next| {
+                if (isVisitedPos(next, visitedPos)) {
+                    // std.log.err("loop detected! {d},{d} {any} {any}", .{ x, y, next, pos });
+                    loops += 1;
+                    map.items[y].items[x] = origTile;
+                    break;
+                }
+                pos = next;
+                try visitedPos.append(pos);
+                steps += 1;
+            }
+            map.items[y].items[x] = origTile;
+        }
+    }
+
+    // var result: i64 = 0;
+    // for (map.items, 0..) |row, y| {
+    //     for (row.items, 0..) |tile, x| {
+    //         if (visited.get(Vec2{ .x = x, .y = y })) |_| {
+    //             std.debug.print("X", .{});
+    //             result += 1;
+    //         } else {
+    //             std.debug.print("{c}", .{@intFromEnum(tile)});
+    //         }
+    //     }
+    //     std.debug.print("\n", .{});
+    // }
+
+    for (map.items) |row| {
+        row.deinit();
+    }
+
+    map.deinit();
+
+    return loops;
 }
 
 test "it should do nothing" {
@@ -160,6 +239,7 @@ test "it should do nothing" {
         .allocator = allocator,
     };
 
-    try std.testing.expectEqual(41, try problem.part1());
-    try std.testing.expectEqual(null, try problem.part2());
+    // try std.testing.expectEqual(41, try problem.part1());
+
+    try std.testing.expectEqual(6, try problem.part2());
 }
